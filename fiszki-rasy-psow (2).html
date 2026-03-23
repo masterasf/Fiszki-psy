@@ -899,7 +899,7 @@ function renderCard() {
 
   // Front image
   const imgC = document.getElementById('imgContainer');
-  const imgSrc = card.photo ? `photos/${card.photo}` : '';
+  const imgSrc = card.photo ? card.photo : '';
 
   imgC.innerHTML = `
     <img src="${imgSrc}" alt="${card.name}" onerror="this.parentNode.innerHTML=noPhotoHTML()" loading="lazy">
