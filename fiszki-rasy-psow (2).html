@@ -1,0 +1,1067 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rasy Psów – Fiszki</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d0f14;
+    --surface: #161a24;
+    --card-front: #1c2133;
+    --card-back: #12181f;
+    --accent: #d4a853;
+    --accent2: #7eb8c9;
+    --text: #f0ece4;
+    --text-muted: #8a8f9e;
+    --group-colors: #c97b4b, #7eb8c9, #b8a96a, #9b7ab8, #5aaa8c, #c95c5c, #7a9bc9, #c97ba0, #8fc96e, #c9b07a;
+    --radius: 20px;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Background texture */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 20%, rgba(212,168,83,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(126,184,201,0.06) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  header {
+    position: relative;
+    z-index: 10;
+    padding: 2rem 1.5rem 1rem;
+    text-align: center;
+  }
+
+  header h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 6vw, 3.5rem);
+    font-weight: 900;
+    letter-spacing: -0.02em;
+    background: linear-gradient(135deg, var(--accent) 0%, #f0e0b0 50%, var(--accent2) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    line-height: 1.1;
+  }
+
+  header p {
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    margin-top: 0.5rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* Stats bar */
+  .stats-bar {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    padding: 1rem 1.5rem;
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .stats-bar span b {
+    color: var(--accent);
+    font-size: 1.1rem;
+    font-weight: 700;
+  }
+
+  /* Filter tabs */
+  .filters {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.75rem 1.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .filters::-webkit-scrollbar { display: none; }
+
+  .filter-btn {
+    border: none;
+    cursor: pointer;
+    padding: 0.4rem 1rem;
+    border-radius: 50px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.78rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+    background: rgba(255,255,255,0.05);
+    color: var(--text-muted);
+    border: 1px solid rgba(255,255,255,0.08);
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .filter-btn:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+  .filter-btn.active { 
+    background: var(--accent); 
+    color: #0d0f14; 
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  /* Progress bar */
+  .progress-container {
+    position: relative;
+    z-index: 10;
+    padding: 0.5rem 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+
+  .progress-bar {
+    height: 3px;
+    background: rgba(255,255,255,0.08);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    border-radius: 2px;
+    transition: width 0.4s cubic-bezier(0.4,0,0.2,1);
+    width: 0%;
+  }
+
+  /* Card area */
+  .card-area {
+    position: relative;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1.5rem 1.5rem 1rem;
+    gap: 1.5rem;
+  }
+
+  /* Flashcard */
+  .flashcard-wrapper {
+    perspective: 1200px;
+    width: 100%;
+    max-width: 440px;
+    aspect-ratio: 3/4;
+    cursor: pointer;
+  }
+
+  @media (min-width: 768px) {
+    .flashcard-wrapper { aspect-ratio: 4/5; max-width: 380px; }
+  }
+
+  .flashcard {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.7s cubic-bezier(0.4,0,0.2,1);
+    border-radius: var(--radius);
+  }
+
+  .flashcard.flipped { transform: rotateY(180deg); }
+
+  .card-front, .card-back {
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+    overflow: hidden;
+  }
+
+  /* FRONT – image side */
+  .card-front {
+    background: var(--card-front);
+    display: flex;
+    flex-direction: column;
+  }
+
+  .card-front .img-container {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-front .img-container img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+    display: block;
+  }
+
+  .flashcard-wrapper:hover .card-front .img-container img {
+    transform: scale(1.04);
+  }
+
+  .card-front .img-container .no-photo {
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    background: linear-gradient(145deg, #1c2133, #12181f);
+    color: var(--text-muted);
+  }
+
+  .card-front .img-container .no-photo .paw {
+    font-size: 4rem;
+    opacity: 0.3;
+    animation: float 3s ease-in-out infinite;
+  }
+
+  .card-front .img-container .no-photo p {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    opacity: 0.5;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-8px); }
+  }
+
+  /* Gradient overlay on image */
+  .card-front .img-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, rgba(13,15,20,0.7) 0%, transparent 50%);
+    pointer-events: none;
+  }
+
+  .card-front .flip-hint {
+    position: absolute;
+    bottom: 1.2rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: rgba(240,236,228,0.7);
+    white-space: nowrap;
+  }
+
+  .card-front .flip-hint svg {
+    width: 14px;
+    height: 14px;
+    animation: spin-hint 3s ease-in-out infinite;
+  }
+
+  @keyframes spin-hint {
+    0%, 80%, 100% { transform: rotate(0); }
+    40% { transform: rotate(180deg); }
+  }
+
+  /* Corner group badge */
+  .group-badge {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    backdrop-filter: blur(8px);
+    border: 1.5px solid rgba(255,255,255,0.15);
+    flex-direction: column;
+    line-height: 1;
+    color: #fff;
+    text-shadow: 0 1px 3px rgba(0,0,0,0.5);
+    z-index: 2;
+  }
+
+  .group-badge span { font-size: 1rem; font-weight: 900; }
+
+  /* BACK – text side */
+  .card-back {
+    background: var(--card-back);
+    transform: rotateY(180deg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    border: 1px solid rgba(255,255,255,0.06);
+    position: relative;
+  }
+
+  .card-back::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: var(--radius);
+    background: 
+      radial-gradient(ellipse at 50% 0%, rgba(212,168,83,0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 50% 100%, rgba(126,184,201,0.05) 0%, transparent 60%);
+  }
+
+  .card-back .back-content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  .card-back .group-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--text-muted);
+    margin-bottom: 1.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .card-back .group-label::before,
+  .card-back .group-label::after {
+    content: '';
+    width: 30px;
+    height: 1px;
+    background: rgba(255,255,255,0.15);
+  }
+
+  .card-back .breed-row {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-bottom: 0.8rem;
+  }
+
+  .card-back .breed-name {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.3rem, 4.5vw, 2rem);
+    font-weight: 700;
+    line-height: 1.2;
+    color: var(--text);
+    text-align: left;
+  }
+
+  .card-back .group-pill {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    border: 2.5px solid;
+    line-height: 1;
+    gap: 1px;
+  }
+
+  .card-back .group-pill .pill-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem;
+    font-weight: 900;
+  }
+
+  .card-back .group-pill .pill-label {
+    font-size: 0.48rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+    opacity: 0.75;
+  }
+
+  .card-back .decorative-lines {
+    width: 40px;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, var(--accent), transparent);
+    margin: 1rem auto;
+  }
+
+  .card-back .flip-back-hint {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-muted);
+    opacity: 0.6;
+    margin-top: 1.5rem;
+  }
+
+  /* Navigation */
+  .nav-controls {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    max-width: 440px;
+    justify-content: center;
+  }
+
+  .nav-btn {
+    border: none;
+    cursor: pointer;
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s ease;
+    font-size: 1.2rem;
+  }
+
+  .nav-btn:hover:not(:disabled) {
+    background: rgba(255,255,255,0.12);
+    transform: scale(1.08);
+  }
+
+  .nav-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  .counter {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.1rem;
+    color: var(--text-muted);
+    min-width: 80px;
+    text-align: center;
+  }
+
+  .counter b { color: var(--text); font-size: 1.5rem; }
+
+  /* Action buttons */
+  .action-btns {
+    display: flex;
+    gap: 0.75rem;
+    width: 100%;
+    max-width: 440px;
+  }
+
+  .action-btn {
+    flex: 1;
+    border: none;
+    cursor: pointer;
+    padding: 0.9rem;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.82rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+  }
+
+  .btn-known {
+    background: rgba(90,170,140,0.15);
+    border: 1px solid rgba(90,170,140,0.3);
+    color: #5aaa8c;
+  }
+
+  .btn-unknown {
+    background: rgba(201,92,92,0.15);
+    border: 1px solid rgba(201,92,92,0.3);
+    color: #c95c5c;
+  }
+
+  .btn-known:hover { background: rgba(90,170,140,0.25); transform: translateY(-1px); }
+  .btn-unknown:hover { background: rgba(201,92,92,0.25); transform: translateY(-1px); }
+
+  /* Results overlay */
+  .results-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(13,15,20,0.97);
+    z-index: 100;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .results-overlay.show { display: flex; }
+
+  .results-overlay h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2rem, 8vw, 3.5rem);
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .results-score {
+    font-size: 4rem;
+    font-family: 'Playfair Display', serif;
+    font-weight: 900;
+    color: var(--text);
+  }
+
+  .results-score span { color: var(--accent); }
+
+  .restart-btn {
+    border: none;
+    cursor: pointer;
+    padding: 1rem 2.5rem;
+    border-radius: 50px;
+    background: var(--accent);
+    color: #0d0f14;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: all 0.2s ease;
+    margin-top: 1rem;
+  }
+
+  .restart-btn:hover { transform: scale(1.05); }
+
+  /* Entrance animation */
+  @keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.96); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  .flashcard-wrapper {
+    animation: cardIn 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+
+  /* Shake animation for wrong */
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    20% { transform: translateX(-8px); }
+    40% { transform: translateX(8px); }
+    60% { transform: translateX(-5px); }
+    80% { transform: translateX(5px); }
+  }
+
+  .flashcard.shake { animation: shake 0.4s ease; }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    background: rgba(22,26,36,0.95);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 50px;
+    padding: 0.7rem 1.5rem;
+    font-size: 0.82rem;
+    letter-spacing: 0.05em;
+    z-index: 200;
+    transition: transform 0.3s cubic-bezier(0.4,0,0.2,1);
+    white-space: nowrap;
+    backdrop-filter: blur(12px);
+  }
+
+  .toast.show { transform: translateX(-50%) translateY(0); }
+  .toast.good { border-color: rgba(90,170,140,0.4); color: #5aaa8c; }
+  .toast.bad { border-color: rgba(201,92,92,0.4); color: #c95c5c; }
+
+  /* PC layout */
+  @media (min-width: 900px) {
+    .card-area {
+      flex-direction: row;
+      align-items: flex-start;
+      justify-content: center;
+      gap: 3rem;
+      padding: 2rem 3rem;
+    }
+
+    .flashcard-wrapper {
+      max-width: 340px;
+      aspect-ratio: 3/4;
+      flex-shrink: 0;
+    }
+
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      padding-top: 1rem;
+      width: 280px;
+    }
+
+    .nav-controls, .action-btns { max-width: 100%; }
+  }
+
+  @media (max-width: 899px) {
+    .right-panel { width: 100%; max-width: 440px; }
+  }
+
+  .right-panel { display: flex; flex-direction: column; gap: 1.2rem; align-items: center; }
+
+  /* Keyboard hint */
+  .keyboard-hint {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    opacity: 0.5;
+    text-align: center;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  @media (max-width: 600px) { .keyboard-hint { display: none; } }
+
+  kbd {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.15);
+    border-radius: 4px;
+    padding: 0.1rem 0.4rem;
+    font-family: monospace;
+    font-size: 0.85em;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Rasy Psów</h1>
+  <p>Fiszki · Egzamin z Kynologii</p>
+</header>
+
+<div class="stats-bar">
+  <span>Znane: <b id="knownCount">0</b></span>
+  <span>Pozostałe: <b id="remainCount">0</b></span>
+</div>
+
+<div class="filters" id="filterContainer"></div>
+
+<div class="progress-container">
+  <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+</div>
+
+<div class="card-area">
+  <div class="flashcard-wrapper" id="cardWrapper" onclick="flipCard()">
+    <div class="flashcard" id="flashcard">
+      <div class="card-front" id="cardFront">
+        <div class="img-container" id="imgContainer"></div>
+      </div>
+      <div class="card-back" id="cardBack">
+        <div class="back-content">
+          <div class="group-label" id="backGroupLabel"></div>
+          <div class="breed-row">
+            <div class="breed-name" id="backBreedName"></div>
+            <div class="group-pill" id="backGroupPill">
+              <span class="pill-num" id="backGroupNum"></span>
+              <span class="pill-label">grupa</span>
+            </div>
+          </div>
+          <div class="decorative-lines"></div>
+          <div class="flip-back-hint">Dotknij, aby odwrócić</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="right-panel">
+    <div class="nav-controls">
+      <button class="nav-btn" id="prevBtn" onclick="navigate(-1)">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+      </button>
+      <div class="counter"><b id="currentNum">1</b> / <span id="totalNum">1</span></div>
+      <button class="nav-btn" id="nextBtn" onclick="navigate(1)">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg>
+      </button>
+    </div>
+
+    <div class="action-btns">
+      <button class="action-btn btn-unknown" onclick="markCard(false)">✗ Nie znam</button>
+      <button class="action-btn btn-known" onclick="markCard(true)">✓ Znam</button>
+    </div>
+
+    <div class="keyboard-hint">
+      <kbd>Space</kbd> odwróć &nbsp; <kbd>←</kbd><kbd>→</kbd> nawigacja &nbsp; <kbd>Z</kbd> znam <kbd>N</kbd> nie znam
+    </div>
+  </div>
+</div>
+
+<div class="results-overlay" id="resultsOverlay">
+  <div>🐾</div>
+  <h2>Wynik sesji</h2>
+  <div class="results-score"><span id="finalKnown">0</span> / <span id="finalTotal">0</span></div>
+  <p style="color:var(--text-muted);font-size:0.9rem" id="finalMsg"></p>
+  <button class="restart-btn" onclick="restartSession()">Zacznij od nowa</button>
+  <button class="restart-btn" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:var(--text-muted)" onclick="restartUnknown()">Powtórz nieznane</button>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// photo = exact filename (with extension) as it appears in the photos/ folder
+const breeds = [
+  // Grupa 1
+  { name: "Bearded Collie",                        group: 1, photo: "Bearded collie – Grupa 1.jpg" },
+  { name: "Border Collie",                          group: 1, photo: "Border collie – Grupa 1.jpg" },
+  { name: "Mudi",                                   group: 1, photo: "Mudi – Grupa 1.jpg" },
+  { name: "Owczarek Australijski typ amerykański",  group: 1, photo: "Owczarek australijski typ amerykański – Grupa.jpg" },
+  { name: "Owczarek Australijski Kelpie",           group: 1, photo: "Owczarek australijski kelpie – Grupa 1.jpg" },
+  { name: "Owczarek Belgijski",                     group: 1, photo: "Owczarek belgijski – Grupa 1.jpg" },
+  { name: "Owczarek Niemiecki Krótkowłosy",         group: 1, photo: "Owczarek niemiecki krótkowłosy – Grupa 1.jpg" },
+  { name: "Owczarek Niemiecki Długowłosy",          group: 1, photo: "Owczarek niemiecki długowłosy – Grupa 1.jpg" },
+  { name: "Owczarek Szetlandzki",                   group: 1, photo: "Owczarek szetlandzki – Grupa 1.jpg" },
+  { name: "Polski Owczarek Nizinny",                group: 1, photo: "Polski owczarek nizinny – Grupa 1.jpg" },
+  { name: "Polski Owczarek Podhalański",            group: 1, photo: "Polski owczarek podhalański – Grupa 1.jpg" },
+  { name: "Czechosłowacki Wilczak",                 group: 1, photo: "Czechosłowacki wilczak – Grupa 1.jpg" },
+  { name: "Welsh Corgi",                            group: 1, photo: "Welsh corgi – Grupa 1.jpg" },
+  // Grupa 2
+  { name: "Doberman",                               group: 2, photo: "Doberman – Grupa 2.jpg" },
+  { name: "Pinczer",                                group: 2, photo: "Pinczer – Grupa 2.jpg" },
+  { name: "Sznaucer Miniaturowy",                   group: 2, photo: "Sznaucer miniaturka – Grupa 2.jpg" },
+  { name: "Sznaucer Średni",                        group: 2, photo: "Sznaucer średni – Grupa 2.jpg" },
+  { name: "Sznaucer Olbrzym",                       group: 2, photo: "Sznaucer olbrzym – Grupa 2.jpg" },
+  { name: "Cane Corso Italiano",                    group: 2, photo: "Cane corso italiano – Grupa 2.png" },
+  { name: "Bokser",                                 group: 2, photo: "Bokser – Grupa 2.jpg" },
+  { name: "Dog Niemiecki",                          group: 2, photo: "Dog niemiecki – Grupa 2.jpg" },
+  { name: "Mastif Angielski",                       group: 2, photo: "Mastif angielski – Grupa 2.jpg" },
+  { name: "Rottweiler",                             group: 2, photo: "Rottweiler – Grupa 2.jpg" },
+  { name: "Buldog Angielski",                       group: 2, photo: "Buldog angielski – Grupa 2.jpg" },
+  { name: "Anatolian",                              group: 2, photo: "Anatolian – Grupa 2.jpg" },
+  { name: "Bernardyn",                              group: 2, photo: "Bernardyn – Grupa 2.jpg" },
+  { name: "Nowofunland",                            group: 2, photo: "Nowofundland – Grupa 2.jpg" },
+  { name: "Owczarek Kaukaski",                      group: 2, photo: "Owczarek kaukaski – Grupa 2.jpg" },
+  { name: "Berneński Pies Pasterski",               group: 2, photo: "Berneński pies pasterski – Grupa 2.jpg" },
+  // Grupa 3
+  { name: "Foksterier Krótkowłosy",                 group: 3, photo: "Foksterier krótkowłosy – Grupa 3.jpg" },
+  { name: "Terier Walijski",                        group: 3, photo: "Terier walijski – Grupa 3.jpg" },
+  { name: "Terier Szkocki",                         group: 3, photo: "Terier szkocki – Grupa 3.jpg" },
+  { name: "Bulterier",                              group: 3, photo: "Bulterier – Grupa 3.jpg" },
+  { name: "Yorkshire Terrier",                      group: 3, photo: "Yorkshire terrier – Grupa 3.jpg" },
+  // Grupa 4
+  { name: "Jamnik Długowłosy",                      group: 4, photo: "Jamnik długowłosy – Grupa 4.jpg" },
+  { name: "Jamnik Krótkowłosy",                     group: 4, photo: "Jamnik krótkowłosy – Grupa 4.jpg" },
+  { name: "Jamnik Szorstkowłosy",                   group: 4, photo: "Jamnik szorstkowłosy – Grupa 4.jpg" },
+  // Grupa 5
+  { name: "Alaskan Malamute",                       group: 5, photo: "Alaskan malamute – Grupa 5.jpg" },
+  { name: "Syberian Husky",                         group: 5, photo: "Syberian husky – Grupa 5.jpg" },
+  { name: "Samojed",                                group: 5, photo: "Samojed – Grupa 5.png" },
+  { name: "Szpic Niemiecki",                        group: 5, photo: "Szpic niemiecki – Grupa 5.jpg" },
+  { name: "Basenji",                                group: 5, photo: "Basenji – Grupa 5.jpg" },
+  // Grupa 6
+  { name: "Basset Hound",                           group: 6, photo: "Basset hound – Grupa 6.jpg" },
+  { name: "Beagle",                                 group: 6, photo: "Beagle – Grupa 6.JPG" },
+  { name: "Gończy Polski",                          group: 6, photo: "Gończy polski – Grupa 6.jpg" },
+  { name: "Ogar Polski",                            group: 6, photo: "Ogar polski – Grupa 6.jpg" },
+  { name: "Posokowiec Bawarski",                    group: 6, photo: "Posokowiec bawarski – Grupa 6.jpg" },
+  { name: "Posokowiec Hanowerski",                  group: 6, photo: "Posokowiec hanowerski – Grupa 6.jpg" },
+  { name: "Dalmatyńczyk",                           group: 6, photo: "Dalmatyńczyk – Grupa 6.jpg" },
+  // Grupa 7
+  { name: "Wyżeł Niemiecki Krótkowłosy",            group: 7, photo: "Wyżeł niemiecki krótkowłosy – Grupa 7.jpg" },
+  { name: "Wyżeł Niemiecki Szorstkowłosy",          group: 7, photo: "Wyżeł niemiecki szorstkowłosy – Grupa 7.jpg" },
+  { name: "Seter Irlandzki",                        group: 7, photo: "Seter irlandzki – Grupa 7.jpg" },
+  // Grupa 8
+  { name: "Golden Retriever",                       group: 8, photo: "Golden retriever – Grupa 8.jpg" },
+  { name: "Labrador Retriever",                     group: 8, photo: "Labrador retriever – Grupa 8.jpg" },
+  { name: "Cocker Spaniel Angielski",               group: 8, photo: "Cocker spaniel angielski – Grupa 8.jpg" },
+  // Grupa 9
+  { name: "Maltańczyk",                             group: 9, photo: "Maltańczyk – Grupa 9.jpg" },
+  { name: "Hawańczyk",                              group: 9, photo: "Hawańczyk – Grupa 9.jpg" },
+  { name: "Bichon Frise",                           group: 9, photo: "Bichon frise – Grupa 9.jpg" },
+  { name: "Pudel Duży",                             group: 9, photo: "Pudel duży - Grupa 9.jpg" },
+  { name: "Pudel Średni",                           group: 9, photo: "Pudel średni - Grupa 9.jpg" },
+  { name: "Pudel Miniaturowy",                      group: 9, photo: "Pudel miniaturowy - Grupa 9.jpg" },
+  { name: "Gryfonik",                               group: 9, photo: "Gryfonik – Grupa 9.jpg" },
+  { name: "Chiński Grzywacz",                       group: 9, photo: "Chiński grzywacz – Grupa 9.jpg" },
+  { name: "Shih Tzu",                               group: 9, photo: "Shih tzu – Grupa 9.jpg" },
+  { name: "Terier Tybetański",                      group: 9, photo: "Terier tybetański – Grupa 9.jpg" },
+  { name: "Chihuahua",                              group: 9, photo: "Chihuahua – Grupa 9.jpg" },
+  { name: "Pekińczyk",                              group: 9, photo: "Pekińczyk – Grupa 9.jpg" },
+  { name: "Boston Terrier",                         group: 9, photo: "Boston terrier – Grupa 9.jpg" },
+  { name: "Buldog Francuski",                       group: 9, photo: "Buldog francuski – Grupa 9.jpg" },
+  { name: "Mops",                                   group: 9, photo: "Mops – Grupa 9.jpg" },
+  // Grupa 10
+  { name: "Chart Polski",                           group: 10, photo: "Chart polski – Grupa 10.jpg" },
+  { name: "Charcik Włoski",                         group: 10, photo: "Charcik włoski – Grupa 10.jpg" },
+];
+
+const groupColors = [
+  '', // index 0 unused
+  '#c97b4b', '#7eb8c9', '#b8a96a', '#9b7ab8',
+  '#5aaa8c', '#c95c5c', '#7a9bc9', '#c97ba0',
+  '#8fc96e', '#c9b07a'
+];
+
+const groupNames = [
+  '', 'Pasterskie', 'Pincze, Szn., Molosy', 'Teriery', 'Jamniki',
+  'Szpice i Pierwotne', 'Gończe i Posokowce', 'Wyżły', 'Aportujące',
+  'Ozdobne i Towarzyszące', 'Charty'
+];
+
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+let deck = shuffle(breeds);
+let current = 0;
+let isFlipped = false;
+let known = new Set();
+let unknown = new Set();
+let activeGroup = 0;
+
+function getFileDeckName(name) {
+  return name.toLowerCase()
+    .replace(/ą/g,'a').replace(/ć/g,'c').replace(/ę/g,'e')
+    .replace(/ł/g,'l').replace(/ń/g,'n').replace(/ó/g,'o')
+    .replace(/ś/g,'s').replace(/ź/g,'z').replace(/ż/g,'z')
+    .replace(/[^a-z0-9]/g,'-').replace(/-+/g,'-').replace(/^-|-$/g,'');
+}
+
+function buildFilters() {
+  const groups = [...new Set(breeds.map(b => b.group))].sort((a,b)=>a-b);
+  const container = document.getElementById('filterContainer');
+  let html = `<button class="filter-btn active" onclick="setFilter(0)">Wszystkie</button>`;
+  groups.forEach(g => {
+    html += `<button class="filter-btn" onclick="setFilter(${g})">Gr. ${g}</button>`;
+  });
+  container.innerHTML = html;
+}
+
+function setFilter(group) {
+  activeGroup = group;
+  document.querySelectorAll('.filter-btn').forEach((btn, i) => {
+    btn.classList.toggle('active', i === (group === 0 ? 0 : group));
+  });
+  // Rebuild filter active by matching text
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    const txt = btn.textContent.trim();
+    if (group === 0) btn.classList.toggle('active', txt === 'Wszystkie');
+    else btn.classList.toggle('active', txt === `Gr. ${group}`);
+  });
+  
+  deck = shuffle(group === 0 ? breeds : breeds.filter(b => b.group === group));
+  known.clear(); unknown.clear();
+  current = 0;
+  isFlipped = false;
+  renderCard();
+  updateStats();
+}
+
+function renderCard() {
+  const card = deck[current];
+  const flashcard = document.getElementById('flashcard');
+  const wrapper = document.getElementById('cardWrapper');
+  
+  isFlipped = false;
+  flashcard.classList.remove('flipped', 'shake');
+
+  // Re-trigger animation
+  wrapper.style.animation = 'none';
+  wrapper.offsetHeight;
+  wrapper.style.animation = '';
+
+  // Front image
+  const imgC = document.getElementById('imgContainer');
+  const imgSrc = card.photo ? `photos/${card.photo}` : '';
+
+  imgC.innerHTML = `
+    <img src="${imgSrc}" alt="${card.name}" onerror="this.parentNode.innerHTML=noPhotoHTML()" loading="lazy">
+    <div class="img-overlay"></div>
+    <div class="group-badge" style="background:${groupColors[card.group]}22;border-color:${groupColors[card.group]}44;color:${groupColors[card.group]}">
+      <span>${card.group}</span>gr.
+    </div>
+    <div class="flip-hint">
+      <svg fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+      Dotknij, aby odkryć
+    </div>
+  `;
+
+  // Back
+  document.getElementById('backGroupLabel').textContent = groupNames[card.group];
+  document.getElementById('backBreedName').textContent = card.name;
+  const pill = document.getElementById('backGroupPill');
+  const color = groupColors[card.group];
+  document.getElementById('backGroupNum').textContent = card.group;
+  pill.style.color = color;
+  pill.style.borderColor = color;
+  pill.style.background = color + '18';
+
+  // Nav buttons
+  document.getElementById('prevBtn').disabled = current === 0;
+  document.getElementById('nextBtn').disabled = current === deck.length - 1;
+  document.getElementById('currentNum').textContent = current + 1;
+  document.getElementById('totalNum').textContent = deck.length;
+
+  // Progress
+  const done = known.size + unknown.size;
+  document.getElementById('progressFill').style.width = `${(done / deck.length) * 100}%`;
+
+  updateStats();
+}
+
+function noPhotoHTML() {
+  return `<div class="no-photo"><div class="paw">🐾</div><p>Dodaj zdjęcie</p></div><div class="img-overlay"></div>`;
+}
+
+// Need to expose globally
+window.noPhotoHTML = noPhotoHTML;
+
+function flipCard() {
+  isFlipped = !isFlipped;
+  document.getElementById('flashcard').classList.toggle('flipped', isFlipped);
+}
+
+function navigate(dir) {
+  const newIdx = current + dir;
+  if (newIdx < 0 || newIdx >= deck.length) return;
+  current = newIdx;
+  renderCard();
+}
+
+function markCard(isKnown) {
+  if (!isFlipped) {
+    flipCard();
+    setTimeout(() => doMark(isKnown), 400);
+    return;
+  }
+  doMark(isKnown);
+}
+
+function doMark(isKnown) {
+  const idx = current;
+  if (isKnown) {
+    known.add(idx);
+    unknown.delete(idx);
+    showToast('✓ ' + deck[idx].name + ' – znam!', 'good');
+  } else {
+    unknown.add(idx);
+    known.delete(idx);
+    document.getElementById('flashcard').classList.add('shake');
+    setTimeout(() => document.getElementById('flashcard').classList.remove('shake'), 400);
+    showToast('✗ Do powtórki', 'bad');
+  }
+  updateStats();
+  
+  // Check if done
+  if (known.size + unknown.size === deck.length) {
+    setTimeout(showResults, 600);
+    return;
+  }
+
+  // Auto advance to next unmarked
+  setTimeout(() => {
+    let next = current + 1;
+    while (next < deck.length && (known.has(next) || unknown.has(next))) next++;
+    if (next < deck.length) { current = next; renderCard(); }
+    else { current = Math.min(current + 1, deck.length - 1); renderCard(); }
+  }, 400);
+}
+
+function updateStats() {
+  document.getElementById('knownCount').textContent = known.size;
+  document.getElementById('remainCount').textContent = deck.length - known.size - unknown.size;
+}
+
+function showResults() {
+  document.getElementById('finalKnown').textContent = known.size;
+  document.getElementById('finalTotal').textContent = deck.length;
+  const pct = Math.round((known.size / deck.length) * 100);
+  const msgs = {
+    100: '🏆 Perfekcyjny wynik! Jesteś mistrzem kynologii!',
+    80: '🌟 Świetny wynik! Prawie wszystko opanowane.',
+    60: '👍 Dobra robota! Jeszcze trochę powtórek.',
+    0: '📚 Czas na więcej nauki. Dasz radę!'
+  };
+  const key = Object.keys(msgs).reverse().find(k => pct >= k);
+  document.getElementById('finalMsg').textContent = msgs[key];
+  document.getElementById('resultsOverlay').classList.add('show');
+}
+
+function restartSession() {
+  document.getElementById('resultsOverlay').classList.remove('show');
+  deck = shuffle(activeGroup === 0 ? breeds : breeds.filter(b => b.group === activeGroup));
+  known.clear(); unknown.clear();
+  current = 0; isFlipped = false;
+  renderCard(); updateStats();
+}
+
+function restartUnknown() {
+  document.getElementById('resultsOverlay').classList.remove('show');
+  const unknownCards = [...unknown].map(i => deck[i]);
+  if (unknownCards.length === 0) { restartSession(); return; }
+  deck = shuffle(unknownCards);
+  known.clear(); unknown.clear();
+  current = 0; isFlipped = false;
+  renderCard(); updateStats();
+}
+
+let toastTimer;
+function showToast(msg, type) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show ' + type;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.className = 'toast', 2000);
+}
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); flipCard(); }
+  if (e.code === 'ArrowRight') navigate(1);
+  if (e.code === 'ArrowLeft') navigate(-1);
+  if (e.code === 'KeyZ') markCard(true);
+  if (e.code === 'KeyN') markCard(false);
+});
+
+// Touch swipe
+let touchStartX = 0;
+document.getElementById('cardWrapper').addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, {passive:true});
+document.getElementById('cardWrapper').addEventListener('touchend', e => {
+  const dx = e.changedTouches[0].clientX - touchStartX;
+  if (Math.abs(dx) > 60) { navigate(dx < 0 ? 1 : -1); }
+  else if (Math.abs(dx) < 10) flipCard();
+}, {passive:true});
+
+// Init
+buildFilters();
+renderCard();
+</script>
+</body>
+</html>
